@@ -4,7 +4,7 @@ import mysql_connector
 from certificate import certificate
 from loguru import logger
 
-SLEEP_TIME = os.getenv("SLEEP_TIME")
+SLEEP_TIME = int(os.getenv("SLEEP_TIME"))
 NOTIFIERS = os.getenv("NOTIFIERS")
 API_KEY = os.getenv("API_KEY")
 certificates = []
