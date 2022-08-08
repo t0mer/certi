@@ -33,4 +33,4 @@ COPY certi /opt/certi
 
 WORKDIR /opt/certi
 
-ENTRYPOINT python certi.py
+ENTRYPOINT python3 certi.py
