@@ -50,8 +50,8 @@ def worker(event):
             new_certificates=db.get_new_certificates(certificates)
             logger.info("Found " + str(len(new_certificates)) + " new certificates")
             db.insert_certificate_to_db(new_certificates)
-            # for certificate in new_certificates:
-            #     new_certificate_notification(certificate)
+            for certificate in new_certificates:
+                new_certificate_notification(certificate)
             logger.debug('Sleeping...')
             event.wait(SLEEP_TIME)
         except KeyboardInterrupt:
