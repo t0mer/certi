@@ -1,6 +1,6 @@
 from requests.structures import CaseInsensitiveDict
 import time,requests,threading,apprise,os
-import mysql_connector
+from sqliteconnector import SqliteConnector
 from certificate import certificate
 from loguru import logger
 
@@ -8,7 +8,7 @@ SLEEP_TIME = int(os.getenv("SLEEP_TIME"))
 NOTIFIERS = os.getenv("NOTIFIERS")
 API_KEY = os.getenv("API_KEY")
 certificates = []
-
+db = SqliteConnector()
 
 apobj = apprise.Apprise()
 
@@ -43,15 +43,15 @@ def worker(event):
     while not event.isSet():
         try:
             certificates.clear()
-            for domain in mysql_connector.get_monitored_domains():
+            for domain in db.get_monitored_domains():
                 logger.info("Fetching certificates for domain: " + domain.DomainName)
                 get_certificates_by_domain(domain.DomainName)
                 time.sleep(1)
-            new_certificates=mysql_connector.get_new_certificates(certificates)
+            new_certificates=db.get_new_certificates(certificates)
             logger.info("Found " + str(len(new_certificates)) + " new certificates")
-            mysql_connector.insert_certificate_to_db(new_certificates)
-            for certificate in new_certificates:
-                new_certificate_notification(certificate)
+            db.insert_certificate_to_db(new_certificates)
+            # for certificate in new_certificates:
+            #     new_certificate_notification(certificate)
             logger.debug('Sleeping...')
             event.wait(SLEEP_TIME)
         except KeyboardInterrupt:

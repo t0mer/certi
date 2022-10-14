@@ -47,7 +47,7 @@ class SqliteConnector:
         except Error as e:
             logger.error(str(e))
 
-    #Get list of monitored domains
+   
     def get_monitored_domains(self):
         monitored_domain_list = []
         try:
@@ -108,11 +108,71 @@ class SqliteConnector:
             return False
 
 
+
+    # def insert_certificate_to_db(self,certificates):
+    #     try:
+    #         self.open_connection()
+    #         logger.info("Inserting " + str(len(certificates)) + " certificates to database")
+    #         cursor = self.conn.cursor()
+    #         for certificate in certificates:
+    #             logger.info("Inserting certificate: " + certificate.id) 
+                
+    #             query = "INSERT INTO certificates (id,not_after,not_before,pubkey_sha256,tbs_sha256,issuer,dns_names,monitored_domain) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s)"
+    #             cursor.execute(query, (certificate.id,certificate.not_after,certificate.not_before,certificate.pubkey_sha256,
+    #                                 certificate.tbs_sha256,certificate.issuer,certificate.dns_names,certificate.monitored_domain))
+    #             self.conn.commit()
+    #         cursor.close()
+    #         self.conn.close()
+    #         return True
+    #     except Error as e:
+    #         logger.error(str(e))
+    #         self.conn.close()
+    #         return False
+
+    def get_new_certificates(self, certificates):
+        global cnx
+        new_certificates=[]
+        try:
+            self.open_connection()
+            cursor = self.conn.cursor()
+            for certificate in certificates:
+                query = "SELECT id FROM certificates WHERE id=? or pubkey_sha256=?"
+                cursor.execute(query, (certificate.id,certificate.pubkey_sha256))
+                rows = cursor.fetchall()
+                if len(rows) > 0:
+                    continue
+                else:
+                    new_certificates.append(certificate)
+            cursor.close()
+            self.conn.close()
+            return new_certificates
+        except Exception as e:
+            self.conn.close()
+            logger.error(e)
+            return False
+
+
+#Add new certificates to database
+    def insert_certificate_to_db(self, certificates):
+        try:
+            self.open_connection()
+            logger.info("Inserting " + str(len(certificates)) + " certificates to database")
+            cursor = self.conn.cursor()
+            for certificate in certificates:
+                logger.info("Inserting certificate: " + certificate.id) 
+                
+                query = '''INSERT INTO certificates (id,not_after,not_before,pubkey_sha256,tbs_sha256,issuer,dns_names,monitored_domain) VALUES (?,?,?,?,?,?,?,?)'''
+                cursor.execute(query, (certificate.id,certificate.not_after,certificate.not_before,certificate.pubkey_sha256,
+                                    certificate.tbs_sha256,certificate.issuer,certificate.dns_names,certificate.monitored_domain))
+                self.conn.commit()
+            cursor.close()
+            self.conn.close()
+            return True
+        except Error as e:
+            logger.error(str(e))
+            self.conn.close()
+            return False
+
 if __name__ == "__main__":
     con = SqliteConnector()
     con.create_tables()
-    # logger.info(len(con.get_monitored_domains()))
-    # con.delete_monitored_domain(1)
-    # logger.info(len(con.get_monitored_domains()))
-    # m = monitored_domain(2,"walla.co.il")
-    # con.update_monitored_domain(m)
