@@ -40,7 +40,7 @@ class Server:
         def add_domain(DomainName: str):
             try:
                 result, message = self.db.add_monitored_domain(DomainName)
-                return JSONResponse(content = '{"message":"'+ message +'","success":"'+ result.lower() +'"}')
+                return JSONResponse(content = '{"message":"'+ message +'","success":"'+ str(result).lower() +'"}')
             except Exception as e:
                 logger.error(str(e))
                 return JSONResponse(content = '{"message":"'+str(e)+'","success":"false"}')
@@ -49,7 +49,7 @@ class Server:
         def delete_domain(DomainId: int):
             try:
                 result, message = self.db.delete_monitored_domain(DomainId)
-                return JSONResponse(content = '{"message":"'+ message +'","success":"'+ result.lower() +'"}')
+                return JSONResponse(content = '{"message":"'+ message +'","success":"'+ str(result).lower() +'"}')
             except Exception as e:
                 logger.error(str(e))
                 return JSONResponse(content = '{"message":"'+str(e)+'","success":"false"}')

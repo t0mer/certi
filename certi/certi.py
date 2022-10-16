@@ -76,6 +76,7 @@ def worker(event):
 
             
 def main():
+    db.create_tables()
     event = threading.Event()
     thread = threading.Thread(target=worker, args=(event,))
     thread.start()
