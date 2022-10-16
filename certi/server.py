@@ -15,22 +15,17 @@ class Server:
         self.db = db
 
         self.tags_metadata = [
-
             {
                 "name": "Domains",
                 "description": "Add, Remove, Update domain to monitored domains list",
-
             },
             {
                 "name": "Certificates",
                 "description": "View list of monitored or issued certificates",
-
             },
         ]
 
         self.app = FastAPI(title="Certi", description="Monitor your SSL Certificates and get notification upon new cert issue", version='1.0.0', openapi_tags=self.tags_metadata, contact={"name": "Tomer Klein", "email": "tomer.klein@gmail.com", "url": "https://github.com/t0mer/certi"})
-
-
 
         @self.app.get("/domains/get",tags=['Domains'], summary="Get list of monitored domains")
         def get_monitored_domains(request: Request):

@@ -67,10 +67,13 @@ def worker(event):
             logger.debug('Sleeping...')
             event.wait(SLEEP_TIME)
         except KeyboardInterrupt:
-            sys.exit()
+            event.set()
             break
         except Exception as e:
+            event.set()
             logger.error(e)
+            logger.error("Please fix the errors and restart the application")
+
             
 def main():
     event = threading.Event()
