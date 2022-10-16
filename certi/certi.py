@@ -1,16 +1,28 @@
+# from concurrent.futures.process import _MAX_WINDOWS_WORKERS
+from multiprocessing.dummy import Process
 from requests.structures import CaseInsensitiveDict
-import time,requests,threading,apprise,os
+import multiprocessing 
+import time
+import requests
+import threading
+import apprise
+import sys
+import os
+import json
 from sqliteconnector import SqliteConnector
 from certificate import certificate
 from loguru import logger
+import sys
 
+from server import Server
 SLEEP_TIME = int(os.getenv("SLEEP_TIME"))
 NOTIFIERS = os.getenv("NOTIFIERS")
 API_KEY = os.getenv("API_KEY")
 certificates = []
 db = SqliteConnector()
-
+server = Server(db)
 apobj = apprise.Apprise()
+
 
 
 def new_certificate_notification(certificate):
@@ -55,7 +67,7 @@ def worker(event):
             logger.debug('Sleeping...')
             event.wait(SLEEP_TIME)
         except KeyboardInterrupt:
-            event.set()
+            sys.exit()
             break
         except Exception as e:
             logger.error(e)
@@ -65,11 +77,24 @@ def main():
     thread = threading.Thread(target=worker, args=(event,))
     thread.start()
 
+   
+
 if __name__ == "__main__":
+    
     if len(NOTIFIERS)!=0:
         logger.info("Setting Apprise notification channels")
         jobs=NOTIFIERS.split()
         for job in jobs:
             logger.info("Adding: " + job)
             apobj.add(job)
-    main()
+   
+
+    main_bot = Process(target = main)
+    main_web = Process(target = server.start)
+    main_bot.start()
+    main_web.start()
+    main_bot.join()
+    main_web.join()
+
+    
+

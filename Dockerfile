@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM techblog/fastapi:latest
 
 LABEL maintainer="tomer.klein@gmail.com"
 
@@ -21,13 +21,10 @@ RUN apt install -yqq python3-pip && \
     apt install -yqq libssl-dev
 
 RUN  pip3 install --upgrade pip --no-cache-dir && \
-     pip3 install --upgrade setuptools --no-cache-dir
+     pip3 install --upgrade setuptools --no-cache-dir && \
+     pip3 install --upgrade psycopg2-binary  --no-cache-dir
 
 RUN mkdir -p /opt/certi
-
-COPY requirements.txt /tmp
-
-RUN pip3 install -r /tmp/requirements.txt
 
 COPY certi /opt/certi
 

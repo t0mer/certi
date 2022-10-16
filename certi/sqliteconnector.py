@@ -46,24 +46,31 @@ class SqliteConnector:
             self.conn.close()          
         except Error as e:
             logger.error(str(e))
-
    
-    def get_monitored_domains(self):
+    def get_monitored_domains(self, api_call=False):
         monitored_domain_list = []
+        logger.debug("api_call = " + str(api_call))
         try:
             self.open_connection()
             cursor = self.conn.cursor()
             query = "SELECT DomainId,DomainName FROM monitored_domains"
             cursor.execute(query)
-            result = cursor.fetchall()
-            cursor.close()
-            self.conn.close()
-            for row in result:
-                monitored_domain_list.append(monitored_domain(row[0],row[1]))
-            return monitored_domain_list
+            if api_call == True:
+                rows = [dict((cursor.description[i][0], value) \
+                for i, value in enumerate(row)) for row in cursor.fetchall()]
+                cursor.close()
+                return (rows[0] if rows else None) if False else rows
+            else:
+                result = cursor.fetchall()
+                for row in result:
+                    monitored_domain_list.append(monitored_domain(row[0],row[1]))
+                cursor.close()
+                return monitored_domain_list
         except Error as e:
             logger.error(str(e))
             return monitored_domain_list
+        finally:
+            self.close_connection()
 
     def add_monitored_domain(self,DomainName):
         try:
@@ -74,10 +81,10 @@ class SqliteConnector:
             cur.execute(sql,DomainName)
             self.conn.commit()
             self.conn.close()
-            return cur.lastrowid>0
+            return str(cur.lastrowid>0), "Domain addedd successfully"
         except Error as e:
             logger.error(str(e))
-            return 0
+            return False, str(e)
 
     def delete_monitored_domain(self,DomainId):
         try:
@@ -86,10 +93,13 @@ class SqliteConnector:
             cur = self.conn.cursor()
             cur.execute(sql, (DomainId,))
             self.conn.commit()
-            return True
+            if(cur.rowcount>0):
+                return str(True), "Domain deleted successfully"
+            else:
+                return str(False), "Domain was not deleted, no record found"
         except Error as e:
             logger.error(str(e))
-            return False
+            return str(False), str(e)
 
     def update_monitored_domain(self, monitored_domain):
         try:
@@ -108,29 +118,7 @@ class SqliteConnector:
             return False
 
 
-
-    # def insert_certificate_to_db(self,certificates):
-    #     try:
-    #         self.open_connection()
-    #         logger.info("Inserting " + str(len(certificates)) + " certificates to database")
-    #         cursor = self.conn.cursor()
-    #         for certificate in certificates:
-    #             logger.info("Inserting certificate: " + certificate.id) 
-                
-    #             query = "INSERT INTO certificates (id,not_after,not_before,pubkey_sha256,tbs_sha256,issuer,dns_names,monitored_domain) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s)"
-    #             cursor.execute(query, (certificate.id,certificate.not_after,certificate.not_before,certificate.pubkey_sha256,
-    #                                 certificate.tbs_sha256,certificate.issuer,certificate.dns_names,certificate.monitored_domain))
-    #             self.conn.commit()
-    #         cursor.close()
-    #         self.conn.close()
-    #         return True
-    #     except Error as e:
-    #         logger.error(str(e))
-    #         self.conn.close()
-    #         return False
-
     def get_new_certificates(self, certificates):
-        global cnx
         new_certificates=[]
         try:
             self.open_connection()
@@ -149,8 +137,22 @@ class SqliteConnector:
         except Exception as e:
             self.conn.close()
             logger.error(e)
-            return False
+            return new_certificates
 
+
+    def get_certificates(self):
+        try:
+            self.open_connection()
+            cursor = self.conn.cursor()
+            query = "SELECT * FROM certificates"
+            cursor.execute(query)
+            rows = [dict((cursor.description[i][0], value) \
+               for i, value in enumerate(row)) for row in cursor.fetchall()]
+            return (rows[0] if rows else None) if False else rows
+        except Exception as e:
+            self.conn.close()
+            logger.error(e)
+            return False
 
 #Add new certificates to database
     def insert_certificate_to_db(self, certificates):
@@ -172,6 +174,9 @@ class SqliteConnector:
             logger.error(str(e))
             self.conn.close()
             return False
+
+
+
 
 if __name__ == "__main__":
     con = SqliteConnector()
