@@ -53,7 +53,18 @@ class Server:
             except Exception as e:
                 logger.error(str(e))
                 return JSONResponse(content = '{"message":"'+str(e)+'","success":"false"}')
-        
+
+        @self.app.post('/domains/active/{DomainId}/{state}',tags=['Domains'], summary="Set Domain status (active/inactive)")
+        def update_domain_states(DomainId: int, Active: bool):
+            try:
+                result, message = self.db.set_monitored_domain_state(DomainId,Active)
+                return JSONResponse(content = '{"message":"'+ message +'","success":"'+ str(result).lower() +'"}')
+            except Exception as e:
+                logger.error(str(e))
+                return JSONResponse(content = '{"message":"'+str(e)+'","success":"false"}')
+
+
+
         @self.app.get("/certificates/get",tags=['Certificates'], summary="Get list of all existing certificates")
         def get_certificates(request: Request):
             try:
