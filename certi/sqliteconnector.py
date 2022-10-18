@@ -23,7 +23,9 @@ class SqliteConnector:
         self.open_connection()
         create_monitored_domains_table = """ CREATE TABLE IF NOT EXISTS monitored_domains (
                                     DomainId integer PRIMARY KEY,
-                                    DomainName text NOT NULL
+                                    DomainName text NOT NULL,
+                                    Active integer DEFAULT 1 NOT NULL,
+                                    FirstRun integer DEFAULT 1 NOT NULL
                                 ); """
 
         create_certificates_table = """ CREATE TABLE IF NOT EXISTS certificates (
@@ -53,7 +55,7 @@ class SqliteConnector:
         try:
             self.open_connection()
             cursor = self.conn.cursor()
-            query = "SELECT DomainId,DomainName FROM monitored_domains"
+            query = "SELECT DomainId,DomainName,Active,FirstRun FROM monitored_domains"
             cursor.execute(query)
             if api_call == True:
                 rows = [dict((cursor.description[i][0], value) \
@@ -63,7 +65,34 @@ class SqliteConnector:
             else:
                 result = cursor.fetchall()
                 for row in result:
-                    monitored_domain_list.append(monitored_domain(row[0],row[1]))
+                    monitored_domain_list.append(monitored_domain(row[0],row[1],row[2],row[3]))
+                cursor.close()
+                return monitored_domain_list
+        except Error as e:
+            logger.error(str(e))
+            return monitored_domain_list
+        finally:
+            self.close_connection()
+
+
+
+    def get_monitored_domains_by_state(self, api_call=False,Active=True):
+        monitored_domain_list = []
+        logger.debug("api_call = " + str(api_call))
+        try:
+            self.open_connection()
+            cursor = self.conn.cursor()
+            query = "SELECT DomainId,DomainName,Active,FirstRun FROM monitored_domains where Active=?"
+            cursor.execute(query,(Active,))
+            if api_call == True:
+                rows = [dict((cursor.description[i][0], value) \
+                for i, value in enumerate(row)) for row in cursor.fetchall()]
+                cursor.close()
+                return (rows[0] if rows else None) if False else rows
+            else:
+                result = cursor.fetchall()
+                for row in result:
+                    monitored_domain_list.append(monitored_domain(row[0],row[1],row[2],row[3]))
                 cursor.close()
                 return monitored_domain_list
         except Error as e:
@@ -117,6 +146,42 @@ class SqliteConnector:
             logger.error(str(e))
             return False
 
+    def update_monitored_domain_first_run(self, DomainId,FirstRun):
+        try:
+            self.open_connection()
+            sql = ''' UPDATE monitored_domains
+              SET FirstRun = ? 
+              WHERE DomainId = ?'''
+            cur = self.conn.cursor()
+            cur.execute(sql,(FirstRun,DomainId))
+            self.conn.commit()
+            cur.close()
+            self.conn.close()
+            return True
+        except Error as e:
+            logger.error(str(e))
+            return False
+
+
+    def set_monitored_domain_state(self,DomainId,Active):
+        try:
+            self.open_connection()
+            sql = ''' UPDATE monitored_domains
+              SET Active = ? 
+              WHERE DomainId = ?'''
+            cur = self.conn.cursor()
+            cur.execute(sql,(Active,DomainId))
+            self.conn.commit()
+            if(cur.rowcount>0):
+                return str(True), "Domain state updated successfully"
+            else:
+                return str(False), "Domain state was not updated, no record found"
+        except Error as e:
+            logger.error(str(e))
+            return str(False), str(e)
+        finally:
+            self.conn.close()
+
 
     def get_new_certificates(self, certificates):
         new_certificates=[]
@@ -158,10 +223,10 @@ class SqliteConnector:
     def insert_certificate_to_db(self, certificates):
         try:
             self.open_connection()
-            logger.info("Inserting " + str(len(certificates)) + " certificates to database")
+            logger.debug("Inserting " + str(len(certificates)) + " certificates to database")
             cursor = self.conn.cursor()
             for certificate in certificates:
-                logger.info("Inserting certificate: " + certificate.id) 
+                logger.debug("Inserting certificate: " + certificate.id) 
                 
                 query = '''INSERT INTO certificates (id,not_after,not_before,pubkey_sha256,tbs_sha256,issuer,dns_names,monitored_domain) VALUES (?,?,?,?,?,?,?,?)'''
                 cursor.execute(query, (certificate.id,certificate.not_after,certificate.not_before,certificate.pubkey_sha256,
