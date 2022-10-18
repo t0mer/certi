@@ -13,17 +13,20 @@ from sqliteconnector import SqliteConnector
 from certificate import certificate
 from loguru import logger
 import sys
-
 from server import Server
+
+logger.remove()
+
 SLEEP_TIME = int(os.getenv("SLEEP_TIME"))
 NOTIFIERS = os.getenv("NOTIFIERS")
 API_KEY = os.getenv("API_KEY")
+LOG_LEVEL = os.getenv("LOG_LEVEL")
 certificates = []
 db = SqliteConnector()
 server = Server(db)
 apobj = apprise.Apprise()
 
-
+logger.add(sys.stderr, level=LOG_LEVEL)
 
 def new_certificate_notification(certificate):
     if len(NOTIFIERS)!=0:
@@ -33,7 +36,7 @@ def new_certificate_notification(certificate):
         )
 
 #Query certspotter for certificates
-def get_certificates_by_domain(domain):
+def get_certificates_by_domain(domain,FirstRun):
     global certificates
     url = "https://api.certspotter.com/v1/issuances?domain="+ domain +"&expand=dns_names&expand=issuer&include_subdomains=true"
     headers = CaseInsensitiveDict()
@@ -41,11 +44,11 @@ def get_certificates_by_domain(domain):
     headers["Authorization"] = "Bearer {}".format(API_KEY)
     resp = requests.get(url, headers=headers)
     if resp.status_code == 200:
-        logger.info("Got " + str(len(resp.json())) + " certificates for domain " + domain)
+        logger.debug("Got " + str(len(resp.json())) + " certificates for domain " + domain)
         for cert in resp.json():
             certificates.append(certificate(CertificateId=0,id=cert['id'],not_after=cert['not_after'].replace('T', ' ').replace('Z', ''),
             not_before=cert['not_before'].replace('T', ' ').replace('Z', ''),pubkey_sha256=cert['pubkey_sha256'],tbs_sha256=cert['tbs_sha256'],
-            issuer=cert['issuer']['name'],dns_names=str(cert['dns_names']),monitored_domain=domain))
+            issuer=cert['issuer']['name'],dns_names=str(cert['dns_names']),monitored_domain=domain,send_alert=FirstRun==0))
     else:
         logger.error("Error getting certificates for domain {" + domain + "}: " + str(resp.status_code) + " " + resp.text)
         return False
@@ -55,15 +58,18 @@ def worker(event):
     while not event.isSet():
         try:
             certificates.clear()
-            for domain in db.get_monitored_domains():
-                logger.info("Fetching certificates for domain: " + domain.DomainName)
-                get_certificates_by_domain(domain.DomainName)
+            for domain in db.get_monitored_domains_by_state(Active=True):
+                logger.debug("Fetching certificates for domain: " + domain.DomainName)
+                get_certificates_by_domain(domain.DomainName, domain.FirstRun)
                 time.sleep(1)
+                domain.FirstRun=0
+                db.update_monitored_domain_first_run(domain.DomainId,domain.FirstRun)
             new_certificates=db.get_new_certificates(certificates)
-            logger.info("Found " + str(len(new_certificates)) + " new certificates")
+            logger.debug("Found " + str(len(new_certificates)) + " new certificates")
             db.insert_certificate_to_db(new_certificates)
             for certificate in new_certificates:
-                new_certificate_notification(certificate)
+                if certificate.send_alert==1:
+                    new_certificate_notification(certificate)
             logger.debug('Sleeping...')
             event.wait(SLEEP_TIME)
         except KeyboardInterrupt:
@@ -86,10 +92,10 @@ def main():
 if __name__ == "__main__":
     
     if len(NOTIFIERS)!=0:
-        logger.info("Setting Apprise notification channels")
+        logger.debug("Setting Apprise notification channels")
         jobs=NOTIFIERS.split()
         for job in jobs:
-            logger.info("Adding: " + job)
+            logger.debug("Adding: " + job)
             apobj.add(job)
    
 
@@ -101,4 +107,3 @@ if __name__ == "__main__":
     main_web.join()
 
     
-
