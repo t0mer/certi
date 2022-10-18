@@ -19,7 +19,7 @@ RUN apt install -yqq python3-pip && \
 
 RUN  pip3 install --upgrade pip --no-cache-dir && \
      pip3 install --upgrade setuptools --no-cache-dir && \
-     pip3 install --upgrade psycopg2-binary  --no-cache-dir
+
 
 RUN mkdir -p /opt/certi
 
