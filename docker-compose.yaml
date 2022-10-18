@@ -5,12 +5,10 @@ services:
     container_name: certi
     restart: always
     environment:
-      - API_KEY= # Certspotter API key
-      - DB_USER= #DB USER
-      - DB_PASS= #DB Password
-      - DB_HOST= #DB Host
-      - DB_NAME= #DB Name
-      - DB_PORT=3306 # MySQL Port
-      - SLEEP_TIME= #[Sleep between searches - Default is 3600 seconds])
-      - NOTIFIERS= #[Apprise notifiers]
+      - API_KEY=
+      - SLEEP_TIME=
+      - NOTIFIERS=
+      - LOG_LEVEL= 
     restart: unless-stopped
+    volumes:
+      - ./data:/opt/certi/db

@@ -1,4 +1,4 @@
-# certi
+# Certi
 Certi is a python based SSL Transparency log monitoring tool that helps you keep tracking your issued certificates.
 
 ## What are Certificate logs
