@@ -118,12 +118,12 @@ services:
       - ./data:/opt/certi/db
 ```
 
-#### Environment
+### Environment
 * API_KEY - API key for [sslmate](https://sslmate.com/) search API.
 * SLEEP_TIME - Time between scans (Default is 7200, which is 2 hours) - To prevent exceeding the search API limits.
 * NOTIFIERS - List of [Supported Notifications](#Supported-Notifications)
 * LOG_LEVEL - Optional valuse are: DEBUG (default), INFO, ERROR
 
-#### Volumes
+### Volumes
 In order to prevent data loss, it's recomended to mount a volume for the application Database.
 "/opt/certi/db" is the path inside the container where the sqlite db is located. it will be created automatically upon application startup. 
