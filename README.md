@@ -132,3 +132,6 @@ In order to prevent data loss, it's recomended to mount a volume for the applica
 
 ### Ports
 Certi has a managment api for the domains and certificates. by default the port is set to 8081.
+
+
+## Managing the application
