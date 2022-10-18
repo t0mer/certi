@@ -4,6 +4,8 @@ services:
     image: techblog/certi
     container_name: certi
     restart: always
+    ports:
+      - 8081:8081
     environment:
       - API_KEY=
       - SLEEP_TIME=

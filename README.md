@@ -108,6 +108,8 @@ services:
     image: techblog/certi
     container_name: certi
     restart: always
+    ports:
+      - "8081:8081"
     environment:
       - API_KEY=
       - SLEEP_TIME=
@@ -127,3 +129,6 @@ services:
 ### Volumes
 In order to prevent data loss, it's recomended to mount a volume for the application Database.
 "/opt/certi/db" is the path inside the container where the sqlite db is located. it will be created automatically upon application startup. 
+
+### Ports
+Certi has a managment api for the domains and certificates. by default the port is set to 8081.
