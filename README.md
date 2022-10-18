@@ -135,3 +135,14 @@ Certi has a managment api for the domains and certificates. by default the port 
 
 
 ## Managing the application
+Certi has a small REST API endpoint created for easy managment. by default the port is set to to 8081. Swagger documentation can be accessed by adding "/docs" to the end of the url [http://docker:8081/docs].
+
+The api have the following endpoints:
+* domains/get (HTTP GET)- Get list of all monitored domains.
+* domains/add/{DomainName} (HTTP PUT) - Add domain to monitored domains list.
+* domains/delete/{DomainId} (HTTP DELETE) - Delete domain from the monitored domains list.
+* /domains/active/{DomainId}/{state} (HTTP POST) - Set domain status to Active/InActive.
+* /certificates/get (HTTP GET) - Get list off all certicicates that the Certi found.
+
+[![Swagger Documentation](https://github.com/t0mer/certi/blob/main/screenshots/certi-swagger.png?raw=true "Swagger Documentation")](https://github.com/t0mer/certi/blob/main/screenshots/certi-swagger.png?raw=true "Swagger Documentation")
+
