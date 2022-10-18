@@ -98,3 +98,24 @@ The table below identifies the services this tool supports and some example serv
 | [XMPP](https://github.com/caronc/apprise/wiki/Notify_xmpp) | xmpp:// or xmpps://    | (TCP) 5222 or 5223   | xmpp://user:password@hostname<br />xmpps://user:password@hostname:port?jid=user@hostname/resource<br/>xmpps://user:password@hostname/target@myhost, target2@myhost/resource
 | [Webex Teams (Cisco)](https://github.com/caronc/apprise/wiki/Notify_wxteams) | wxteams://  | (TCP) 443   | wxteams://Token
 | [Zulip Chat](https://github.com/caronc/apprise/wiki/Notify_zulip) | zulip://  | (TCP) 443   | zulip://botname@Organization/Token<br />zulip://botname@Organization/Token/Stream<br />zulip://botname@Organization/Token/Email
+
+## Installation
+Certi is a docker based application that can be installed using docker compose:
+```
+version: "3.6"
+services:
+  certi:
+    image: techblog/certi
+    container_name: certi
+    restart: always
+    environment:
+      - API_KEY=
+      - SLEEP_TIME=
+      - NOTIFIERS=
+      - LOG_LEVEL= 
+    restart: unless-stopped
+```
+
+* API_KEY - API key for [sslmate](https://sslmate.com/) search API.
+* SLEEP_TIME - Time between scans (Default is 7200, which is 2 hours) - To prevent exceeding the search API limits.
+* NOTIFIERS - List of [Supported Notifications](#Supported-Notifications)
