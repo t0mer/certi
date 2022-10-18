@@ -115,7 +115,6 @@ services:
       - SLEEP_TIME=
       - NOTIFIERS=
       - LOG_LEVEL= 
-    restart: unless-stopped
     volumes:
       - ./data:/opt/certi/db
 ```
