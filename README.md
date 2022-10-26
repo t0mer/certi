@@ -13,7 +13,7 @@ Thanks to CT, domain owners, browsers, academics, and other interested people ca
 - Manage your domains using REST API (swagger documentation included).
 
 
-## Components and Frameworks used in TTS-STT
+## Components and Frameworks used in Certi
 * [Loguru](https://pypi.org/project/loguru/) For logging.
 * [FastAPI](https://github.com/tiangolo/fastapi) For REST API.
 * [Apprise](https://github.com/caronc/apprise) For notifications.
