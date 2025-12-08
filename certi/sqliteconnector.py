@@ -2,6 +2,8 @@ import sqlite3
 from sqlite3 import Error
 from loguru import logger
 from monitored_domain import monitored_domain
+
+
 class SqliteConnector:
     def __init__(self):
         self.db_file = "db/certi.db"
@@ -10,12 +12,16 @@ class SqliteConnector:
     def open_connection(self):
         try:
             self.conn = sqlite3.connect(self.db_file)
+            return True
         except Error as e:
             logger.error(str(e))
+            return False
 
     def close_connection(self):
         try:
-            self.conn.close()
+            if self.conn:
+                self.conn.close()
+                self.conn = None
         except Error as e:
             logger.error(str(e))
 
@@ -40,207 +46,228 @@ class SqliteConnector:
                                     monitored_domain text NOT NULL
                                 ); """
 
+        c = None
         try:
             c = self.conn.cursor()
-            c.execute(create_monitored_domains_table) 
-            c.execute(create_certificates_table)  
-            c.close()
-            self.conn.close()          
+            c.execute(create_monitored_domains_table)
+            c.execute(create_certificates_table)
         except Error as e:
             logger.error(str(e))
-   
+        finally:
+            if c:
+                c.close()
+            self.close_connection()
+
     def get_monitored_domains(self, api_call=False):
         monitored_domain_list = []
         logger.debug("api_call = " + str(api_call))
+        cursor = None
         try:
             self.open_connection()
             cursor = self.conn.cursor()
             query = "SELECT DomainId,DomainName,Active,FirstRun FROM monitored_domains"
             cursor.execute(query)
-            if api_call == True:
-                rows = [dict((cursor.description[i][0], value) \
-                for i, value in enumerate(row)) for row in cursor.fetchall()]
-                cursor.close()
-                return (rows[0] if rows else None) if False else rows
+            if api_call:
+                rows = [dict((cursor.description[i][0], value)
+                            for i, value in enumerate(row)) for row in cursor.fetchall()]
+                return rows
             else:
                 result = cursor.fetchall()
                 for row in result:
-                    monitored_domain_list.append(monitored_domain(row[0],row[1],row[2],row[3]))
-                cursor.close()
+                    monitored_domain_list.append(monitored_domain(row[0], row[1], row[2], row[3]))
                 return monitored_domain_list
         except Error as e:
             logger.error(str(e))
-            return monitored_domain_list
+            return monitored_domain_list if not api_call else []
         finally:
+            if cursor:
+                cursor.close()
             self.close_connection()
 
-
-
-    def get_monitored_domains_by_state(self, api_call=False,Active=True):
+    def get_monitored_domains_by_state(self, api_call=False, Active=True):
         monitored_domain_list = []
         logger.debug("api_call = " + str(api_call))
+        cursor = None
         try:
             self.open_connection()
             cursor = self.conn.cursor()
             query = "SELECT DomainId,DomainName,Active,FirstRun FROM monitored_domains where Active=?"
-            cursor.execute(query,(Active,))
-            if api_call == True:
-                rows = [dict((cursor.description[i][0], value) \
-                for i, value in enumerate(row)) for row in cursor.fetchall()]
-                cursor.close()
-                return (rows[0] if rows else None) if False else rows
+            cursor.execute(query, (Active,))
+            if api_call:
+                rows = [dict((cursor.description[i][0], value)
+                            for i, value in enumerate(row)) for row in cursor.fetchall()]
+                return rows
             else:
                 result = cursor.fetchall()
                 for row in result:
-                    monitored_domain_list.append(monitored_domain(row[0],row[1],row[2],row[3]))
-                cursor.close()
+                    monitored_domain_list.append(monitored_domain(row[0], row[1], row[2], row[3]))
                 return monitored_domain_list
         except Error as e:
             logger.error(str(e))
-            return monitored_domain_list
+            return monitored_domain_list if not api_call else []
         finally:
+            if cursor:
+                cursor.close()
             self.close_connection()
 
-    def add_monitored_domain(self,DomainName):
+    def add_monitored_domain(self, DomainName):
+        cur = None
         try:
-            DomainName = (DomainName,)
             self.open_connection()
-            sql =  """ INSERT INTO monitored_domains(DomainName) VALUES ((?))"""
+            sql = """ INSERT INTO monitored_domains(DomainName) VALUES (?)"""
             cur = self.conn.cursor()
-            cur.execute(sql,DomainName)
+            cur.execute(sql, (DomainName,))
             self.conn.commit()
-            self.conn.close()
-            return str(cur.lastrowid>0), "Domain addedd successfully"
+            return True, "Domain added successfully"
         except Error as e:
             logger.error(str(e))
             return False, str(e)
+        finally:
+            if cur:
+                cur.close()
+            self.close_connection()
 
-    def delete_monitored_domain(self,DomainId):
+    def delete_monitored_domain(self, DomainId):
+        cur = None
         try:
             self.open_connection()
             sql = 'DELETE FROM monitored_domains WHERE DomainId=?'
             cur = self.conn.cursor()
             cur.execute(sql, (DomainId,))
             self.conn.commit()
-            if(cur.rowcount>0):
-                return str(True), "Domain deleted successfully"
+            if cur.rowcount > 0:
+                return True, "Domain deleted successfully"
             else:
-                return str(False), "Domain was not deleted, no record found"
+                return False, "Domain was not deleted, no record found"
         except Error as e:
             logger.error(str(e))
-            return str(False), str(e)
+            return False, str(e)
+        finally:
+            if cur:
+                cur.close()
+            self.close_connection()
 
-    def update_monitored_domain(self, monitored_domain):
+    def update_monitored_domain(self, domain):
+        cur = None
         try:
             self.open_connection()
             sql = ''' UPDATE monitored_domains
               SET DomainName = ? 
               WHERE DomainId = ?'''
             cur = self.conn.cursor()
-            cur.execute(sql,(monitored_domain.DomainName,monitored_domain.DomainId))
+            cur.execute(sql, (domain.DomainName, domain.DomainId))
             self.conn.commit()
-            cur.close()
-            self.conn.close()
             return True
         except Error as e:
             logger.error(str(e))
             return False
+        finally:
+            if cur:
+                cur.close()
+            self.close_connection()
 
-    def update_monitored_domain_first_run(self, DomainId,FirstRun):
+    def update_monitored_domain_first_run(self, DomainId, FirstRun):
+        cur = None
         try:
             self.open_connection()
             sql = ''' UPDATE monitored_domains
               SET FirstRun = ? 
               WHERE DomainId = ?'''
             cur = self.conn.cursor()
-            cur.execute(sql,(FirstRun,DomainId))
+            cur.execute(sql, (FirstRun, DomainId))
             self.conn.commit()
-            cur.close()
-            self.conn.close()
             return True
         except Error as e:
             logger.error(str(e))
             return False
+        finally:
+            if cur:
+                cur.close()
+            self.close_connection()
 
-
-    def set_monitored_domain_state(self,DomainId,Active):
+    def set_monitored_domain_state(self, DomainId, Active):
+        cur = None
         try:
             self.open_connection()
             sql = ''' UPDATE monitored_domains
               SET Active = ? 
               WHERE DomainId = ?'''
             cur = self.conn.cursor()
-            cur.execute(sql,(Active,DomainId))
+            cur.execute(sql, (Active, DomainId))
             self.conn.commit()
-            if(cur.rowcount>0):
-                return str(True), "Domain state updated successfully"
+            if cur.rowcount > 0:
+                return True, "Domain state updated successfully"
             else:
-                return str(False), "Domain state was not updated, no record found"
+                return False, "Domain state was not updated, no record found"
         except Error as e:
             logger.error(str(e))
-            return str(False), str(e)
+            return False, str(e)
         finally:
-            self.conn.close()
-
+            if cur:
+                cur.close()
+            self.close_connection()
 
     def get_new_certificates(self, certificates):
-        new_certificates=[]
+        new_certificates = []
+        cursor = None
         try:
             self.open_connection()
             cursor = self.conn.cursor()
             for certificate in certificates:
                 query = "SELECT id FROM certificates WHERE id=? or pubkey_sha256=?"
-                cursor.execute(query, (certificate.id,certificate.pubkey_sha256))
+                cursor.execute(query, (certificate.id, certificate.pubkey_sha256))
                 rows = cursor.fetchall()
-                if len(rows) > 0:
-                    continue
-                else:
+                if len(rows) == 0:
                     new_certificates.append(certificate)
-            cursor.close()
-            self.conn.close()
             return new_certificates
         except Exception as e:
-            self.conn.close()
             logger.error(e)
             return new_certificates
-
+        finally:
+            if cursor:
+                cursor.close()
+            self.close_connection()
 
     def get_certificates(self):
+        cursor = None
         try:
             self.open_connection()
             cursor = self.conn.cursor()
             query = "SELECT * FROM certificates"
             cursor.execute(query)
-            rows = [dict((cursor.description[i][0], value) \
-               for i, value in enumerate(row)) for row in cursor.fetchall()]
-            return (rows[0] if rows else None) if False else rows
+            rows = [dict((cursor.description[i][0], value)
+                        for i, value in enumerate(row)) for row in cursor.fetchall()]
+            return rows
         except Exception as e:
-            self.conn.close()
             logger.error(e)
-            return False
+            return []
+        finally:
+            if cursor:
+                cursor.close()
+            self.close_connection()
 
-#Add new certificates to database
+    # Add new certificates to database
     def insert_certificate_to_db(self, certificates):
+        cursor = None
         try:
             self.open_connection()
             logger.debug("Inserting " + str(len(certificates)) + " certificates to database")
             cursor = self.conn.cursor()
             for certificate in certificates:
-                logger.debug("Inserting certificate: " + certificate.id) 
-                
+                logger.debug("Inserting certificate: " + certificate.id)
+
                 query = '''INSERT INTO certificates (id,not_after,not_before,pubkey_sha256,tbs_sha256,issuer,dns_names,monitored_domain) VALUES (?,?,?,?,?,?,?,?)'''
-                cursor.execute(query, (certificate.id,certificate.not_after,certificate.not_before,certificate.pubkey_sha256,
-                                    certificate.tbs_sha256,certificate.issuer,certificate.dns_names,certificate.monitored_domain))
+                cursor.execute(query, (certificate.id, certificate.not_after, certificate.not_before, certificate.pubkey_sha256,
+                                      certificate.tbs_sha256, certificate.issuer, certificate.dns_names, certificate.monitored_domain))
                 self.conn.commit()
-            cursor.close()
-            self.conn.close()
             return True
         except Error as e:
             logger.error(str(e))
-            self.conn.close()
             return False
-
-
+        finally:
+            if cursor:
+                cursor.close()
+            self.close_connection()
 
 
 if __name__ == "__main__":
